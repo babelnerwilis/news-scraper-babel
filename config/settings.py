@@ -27,6 +27,6 @@ WORKSHEET_NAME   = "data"
 # =========================
 # SCRAPER BEHAVIOR
 # =========================
-# CRAWL_DELAY = 5
-MIN_DELAY = 5
-MAX_DELAY = 7
+CRAWL_DELAY = 5
+# MIN_DELAY = 5
+# MAX_DELAY = 7
