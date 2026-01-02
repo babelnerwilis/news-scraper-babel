@@ -34,7 +34,9 @@ FIELDNAMES = [
 
 
 def run_daily():
-    articles = load_articles_from_sitemap()
+    # articles = load_articles_from_sitemap()
+    articles = load_articles_from_sitemap(page)
+
 
     if not articles:
         print("No articles found for today.")
