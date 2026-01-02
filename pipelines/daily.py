@@ -46,7 +46,7 @@ def run():
                 "content": content
             })
 
-            time.sleep(CRAWL_DELAY)
+            # time.sleep(CRAWL_DELAY)
             MIN_DELAY = CRAWL_DELAY - 1
             MAX_DELAY = CRAWL_DELAY + 1
             time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
