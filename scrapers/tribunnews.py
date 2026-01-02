@@ -1,56 +1,60 @@
 import re
-from datetime import datetime
+import time
+import random
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
-
+from datetime import datetime
 from config.settings import (
     SITEMAP_URL,
     START_DATE,
     END_DATE,
     WIB,
-    HEADERS,
+    MIN_DELAY,
+    MAX_DELAY,
 )
 
 # ======================================================
-# LOAD SITEMAP (Browser-based to avoid 403 on GitHub)
+# LOAD ARTICLES FROM SITEMAP (USING PLAYWRIGHT BROWSER)
 # ======================================================
-def load_articles_from_sitemap():
-    print("Loading sitemap (via browser)...")
+def load_articles_from_sitemap(page):
+    """
+    Load sitemap using Playwright to avoid 403 on GitHub Actions.
+    Returns list of article metadata dictionaries.
+    """
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        context = browser.new_context(
-            user_agent=HEADERS["User-Agent"]
-        )
-        page = context.new_page()
+    print("Loading sitemap via browser...")
 
-        page.goto(SITEMAP_URL, wait_until="domcontentloaded", timeout=60000)
-        xml_text = page.content()
+    page.goto(SITEMAP_URL, wait_until="domcontentloaded", timeout=60000)
+    page.wait_for_timeout(3000)
 
-        browser.close()
-
-    soup = BeautifulSoup(xml_text, "xml")
+    soup = BeautifulSoup(page.content(), "xml")
     articles = []
 
     for url in soup.find_all("url"):
         try:
-            loc = url.find("loc").text.strip()
+            loc_tag = url.find("loc")
+            pub_tag = url.find("news:publication_date")
+            title_tag = url.find("news:title")
+
+            if not (loc_tag and pub_tag and title_tag):
+                continue
+
+            loc = loc_tag.text.strip()
 
             pub_date = datetime.fromisoformat(
-                url.find("news:publication_date").text.strip()
+                pub_tag.text.strip()
             ).astimezone(WIB)
 
-            # Date filter (yesterday only / configured range)
+            # Filter by date window
             if not (START_DATE <= pub_date <= END_DATE):
                 continue
 
-            title = url.find("news:title").text.strip()
+            title = title_tag.text.strip()
 
             kw_tag = url.find("news:keywords")
             tags = kw_tag.text.strip() if kw_tag else ""
 
             source_tag = url.find("news:name")
-            source = source_tag.get_text(strip=True) if source_tag else ""
+            source = source_tag.get_text(strip=True) if source_tag else "Tribunnews"
 
             articles.append({
                 "day": pub_date.strftime("%d/%m/%Y"),
@@ -64,56 +68,72 @@ def load_articles_from_sitemap():
         except Exception as e:
             print("⚠️ Sitemap parse error:", e)
 
-    # 🔑 IMPORTANT: scrape oldest first
+    # Oldest → newest (important for historical consistency)
     articles.sort(key=lambda x: x["publication_datetime"])
 
-    print(f"Found {len(articles)} articles")
+    print(f"Found {len(articles)} articles in date range")
     return articles
 
 
 # ======================================================
-# ARTICLE CONTENT EXTRACTION
+# EXTRACT ARTICLE CONTENT
 # ======================================================
 def extract_article_content(page, url):
-    page.goto(url, wait_until="domcontentloaded", timeout=60000)
-    page.wait_for_timeout(2000)
+    """
+    Extract article text and total pages from a Tribunnews article.
+    Returns: (content_text, total_pages)
+    """
 
-    soup = BeautifulSoup(page.content(), "html.parser")
+    try:
+        page.goto(url, wait_until="domcontentloaded", timeout=60000)
+        page.wait_for_timeout(2000)
 
-    # ---------- TOTAL PAGES ----------
-    total_pages = 1
-    page_info = soup.select_one("span.total-page")
-    if page_info:
-        m = re.search(r"Halaman\s+\d+/(\d+)", page_info.get_text())
-        if m:
-            total_pages = int(m.group(1))
+        soup = BeautifulSoup(page.content(), "html.parser")
 
-    # ---------- CONTENT (JS variable – primary) ----------
-    for s in soup.find_all("script"):
-        if s.string and "keywordBrandSafety" in s.string:
-            match = re.search(
-                r'keywordBrandSafety\s*=\s*"(.+?)";',
-                s.string,
-                re.DOTALL
-            )
-            if match:
-                content = (
-                    match.group(1)
-                    .replace("\\n", "\n")
-                    .replace("\\\"", "\"")
-                    .strip()
+        # --------------------------------------------------
+        # Detect pagination (if exists)
+        # --------------------------------------------------
+        total_pages = 1
+        page_info = soup.select_one("span.total-page")
+        if page_info:
+            m = re.search(r"Halaman\s+\d+/(\d+)", page_info.get_text())
+            if m:
+                total_pages = int(m.group(1))
+
+        # --------------------------------------------------
+        # Preferred extraction (JS embedded content)
+        # --------------------------------------------------
+        for s in soup.find_all("script"):
+            if s.string and "keywordBrandSafety" in s.string:
+                match = re.search(
+                    r'keywordBrandSafety\s*=\s*"(.+?)";',
+                    s.string,
+                    re.DOTALL
                 )
-                return content, total_pages
+                if match:
+                    content = (
+                        match.group(1)
+                        .replace("\\n", "\n")
+                        .replace("\\\"", "\"")
+                        .strip()
+                    )
+                    return content, total_pages
 
-    # ---------- CONTENT (DOM fallback) ----------
-    content_div = soup.find("div", class_="side-article txt-article")
-    if content_div:
-        paragraphs = [
-            p.get_text(strip=True)
-            for p in content_div.find_all("p")
-            if p.get_text(strip=True)
-        ]
-        if paragraphs:
-            return "\n\n".join(paragraphs), total_pages
+        # --------------------------------------------------
+        # Fallback: normal article HTML
+        # --------------------------------------------------
+        content_div = soup.find("div", class_="side-article txt-article")
+        if content_div:
+            paragraphs = [
+                p.get_text(strip=True)
+                for p in content_div.find_all("p")
+                if p.get_text(strip=True)
+            ]
+            if paragraphs:
+                return "\n\n".join(paragraphs), total_pages
 
-    return "N/A", total_pages
+        return "N/A", total_pages
+
+    finally:
+        # Polite delay to reduce detection risk
+        time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
