@@ -1,21 +1,15 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
 .venv/
-env/
+*.pyc
 
-# Playwright
-playwright/.cache/
-.ms-playwright/
-
-# Credentials
+# Secrets
 service_account.json
 
-# Output
+# Output files
 output/
 *.xlsx
+*.csv
 
 # OS
 .DS_Store
