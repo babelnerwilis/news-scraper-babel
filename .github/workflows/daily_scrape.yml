@@ -2,7 +2,8 @@ name: Daily News Scraper (Babel)
 
 on:
   schedule:
-    - cron: "30 0 * * *"   # 07:30 WIB
+    # 07:30 WIB = 00:30 UTC
+    - cron: "30 0 * * *"
   workflow_dispatch:
 
 jobs:
@@ -24,13 +25,14 @@ jobs:
           pip install -r requirements.txt
           playwright install chromium
 
-      - name: Create Google credentials file
+      - name: Create Google service account file
         run: |
           echo '${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}' > service_account.json
 
-      - name: Run scraper
+      - name: Run daily scraper
         env:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           SHEET_NAME: ${{ vars.SHEET_NAME }}
+          GOOGLE_CREDENTIALS_FILE: service_account.json
         run: |
           python -m pipelines.daily
