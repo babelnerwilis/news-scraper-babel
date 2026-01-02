@@ -1,6 +1,9 @@
 playwright
+pandas
+openpyxl
 beautifulsoup4
+tqdm
+lxml
 requests
 gspread
 google-auth
-
