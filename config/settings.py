@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta
 
 # =========================
 # TIMEZONE
@@ -6,27 +6,52 @@ from datetime import datetime, timedelta, timezone
 WIB = timezone(timedelta(hours=7))
 
 # =========================
-# SCRAPING WINDOW
+# DATE RANGE (yesterday only)
 # =========================
-# Daily run: yesterday → today
-TODAY = datetime.now(WIB)
-START_DATE = (TODAY - timedelta(days=1)).replace(hour=0, minute=0, second=0)
-END_DATE   = TODAY.replace(hour=23, minute=59, second=59)
+YESTERDAY = datetime.now(WIB) - timedelta(days=1)
+
+START_DATE = YESTERDAY.replace(hour=0, minute=0, second=0)
+END_DATE   = YESTERDAY.replace(hour=23, minute=59, second=59)
 
 # =========================
-# TRIBUNNEWS
+# SCRAPER CONFIG
 # =========================
-TRIBUN_SITEMAP_URL = "https://bangka.tribunnews.com/lokal/sitemap_news.xml"
+SITEMAP_URL = "https://bangka.tribunnews.com/lokal/sitemap_news.xml"
+
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
+}
+
+MIN_DELAY = 5
+MAX_DELAY = 7
 
 # =========================
-# GOOGLE SHEETS
+# OUTPUT (local, optional)
 # =========================
-SPREADSHEET_NAME = "Bangka Tribunnews Daily"
-WORKSHEET_NAME   = "data"
+OUTPUT_DIR = "output"
 
 # =========================
-# SCRAPER BEHAVIOR
+# GOOGLE SHEETS CONFIG
 # =========================
-CRAWL_DELAY = 5
-# MIN_DELAY = 5
-# MAX_DELAY = 7
+SPREADSHEET_ID = "1C7dNMjAaPGCw_OnUqj1mJuA8Sk1MayNb-9TSserpM5U"
+# SHEET_NAME = "bangka_tribunnews"
+# SHEET_NAME = "github_test"
+GOOGLE_CREDENTIALS_FILE = "service_account.json"
+
+# =========================
+# CANONICAL COLUMN ORDER
+# =========================
+FIELDNAMES = [
+    "day",
+    "publication_datetime",
+    "source",          
+    "title",
+    "url",             
+    "tags",
+    "total_pages",
+    "content",
+]
