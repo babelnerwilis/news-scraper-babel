@@ -28,6 +28,10 @@ def load_articles_from_sitemap(page):
     page.goto(SITEMAP_URL, wait_until="domcontentloaded", timeout=60000)
     page.wait_for_timeout(3000)
 
+    html = page.content()
+    print("🔎 First 500 chars of sitemap response:")
+    print(html[:500])
+
     soup = BeautifulSoup(page.content(), "xml")
     articles = []
 
