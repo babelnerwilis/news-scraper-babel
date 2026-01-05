@@ -13,19 +13,17 @@ from config.settings import (
 )
 
 # ======================================================
-# LOAD ARTICLES FROM SITEMAP (USING PLAYWRIGHT BROWSER)
+# LOAD ARTICLES FROM SITEMAP (PLAYWRIGHT)
 # ======================================================
 def load_articles_from_sitemap(page):
     """
-    Load sitemap using Playwright to avoid 403 on GitHub Actions.
-    Returns list of article metadata dictionaries.
+    Load Tribunnews sitemap using Playwright
+    (403-safe for GitHub Actions).
     """
 
-    print("Loading sitemap via browser...")
-    # PRINT for Debug
-    print("🕒 START_DATE:", START_DATE)
-    print("🕒 END_DATE  :", END_DATE)
-
+    print("🚀 Loading sitemap via Playwright browser...")
+    print("🕒 START_DATE:", START_DATE.isoformat())
+    print("🕒 END_DATE  :", END_DATE.isoformat())
 
     page.goto(SITEMAP_URL, wait_until="domcontentloaded", timeout=60000)
     page.wait_for_timeout(3000)
@@ -33,37 +31,58 @@ def load_articles_from_sitemap(page):
     soup = BeautifulSoup(page.content(), "xml")
     articles = []
 
-    for url in soup.find_all("url"):
+    urls = soup.find_all("url")
+    print(f"🔍 Total <url> entries in sitemap: {len(urls)}")
+
+    for url in urls:
         try:
+            # ------------------------------------------
+            # Namespace-safe XML extraction
+            # ------------------------------------------
             loc_tag = url.find("loc")
-            pub_tag = url.find("news:publication_date")
-            title_tag = url.find("news:title")
+
+            pub_tag = url.find(
+                lambda t: t.name.endswith("publication_date")
+            )
+            title_tag = url.find(
+                lambda t: t.name.endswith("title")
+            )
 
             if not (loc_tag and pub_tag and title_tag):
                 continue
 
-            loc = loc_tag.text.strip()
+            loc = loc_tag.get_text(strip=True)
 
-            pub_date = datetime.fromisoformat(
-                pub_tag.text.strip()
-            ).astimezone(WIB)
+            raw_date = pub_tag.get_text(strip=True)
 
-            # PRINT for Debug
-            raw_date = url.find("news:publication_date").text.strip()
-            print("SITEMAP DATE RAW:", raw_date)
+            pub_date = (
+                datetime.fromisoformat(raw_date)
+                .astimezone(WIB)
+            )
 
+            # Debug (safe to keep in CI)
+            print("📰", pub_date.isoformat(), loc)
 
-            # Filter by date window
-            if not (START_DATE <= pub_date <= END_DATE):
+            # ------------------------------------------
+            # DATE FILTER
+            # ------------------------------------------
+            if pub_date < START_DATE or pub_date > END_DATE:
                 continue
 
-            title = title_tag.text.strip()
+            title = title_tag.get_text(strip=True)
 
-            kw_tag = url.find("news:keywords")
-            tags = kw_tag.text.strip() if kw_tag else ""
+            kw_tag = url.find(
+                lambda t: t.name.endswith("keywords")
+            )
+            tags = kw_tag.get_text(strip=True) if kw_tag else ""
 
-            source_tag = url.find("news:name")
-            source = source_tag.get_text(strip=True) if source_tag else "Tribunnews"
+            source_tag = url.find(
+                lambda t: t.name.endswith("name")
+            )
+            source = (
+                source_tag.get_text(strip=True)
+                if source_tag else "Tribunnews"
+            )
 
             articles.append({
                 "day": pub_date.strftime("%d/%m/%Y"),
@@ -77,10 +96,10 @@ def load_articles_from_sitemap(page):
         except Exception as e:
             print("⚠️ Sitemap parse error:", e)
 
-    # Oldest → newest (important for historical consistency)
+    # Oldest → newest
     articles.sort(key=lambda x: x["publication_datetime"])
 
-    print(f"Found {len(articles)} articles in date range")
+    print(f"✅ Found {len(articles)} articles in date window")
     return articles
 
 
@@ -89,8 +108,8 @@ def load_articles_from_sitemap(page):
 # ======================================================
 def extract_article_content(page, url):
     """
-    Extract article text and total pages from a Tribunnews article.
-    Returns: (content_text, total_pages)
+    Extract article text from Tribunnews article.
+    Returns (content_text, total_pages)
     """
 
     try:
@@ -99,9 +118,9 @@ def extract_article_content(page, url):
 
         soup = BeautifulSoup(page.content(), "html.parser")
 
-        # --------------------------------------------------
-        # Detect pagination (if exists)
-        # --------------------------------------------------
+        # ------------------------------------------
+        # Pagination detection
+        # ------------------------------------------
         total_pages = 1
         page_info = soup.select_one("span.total-page")
         if page_info:
@@ -109,9 +128,9 @@ def extract_article_content(page, url):
             if m:
                 total_pages = int(m.group(1))
 
-        # --------------------------------------------------
-        # Preferred extraction (JS embedded content)
-        # --------------------------------------------------
+        # ------------------------------------------
+        # Preferred: embedded JS content
+        # ------------------------------------------
         for s in soup.find_all("script"):
             if s.string and "keywordBrandSafety" in s.string:
                 match = re.search(
@@ -128,9 +147,9 @@ def extract_article_content(page, url):
                     )
                     return content, total_pages
 
-        # --------------------------------------------------
-        # Fallback: normal article HTML
-        # --------------------------------------------------
+        # ------------------------------------------
+        # Fallback: HTML article body
+        # ------------------------------------------
         content_div = soup.find("div", class_="side-article txt-article")
         if content_div:
             paragraphs = [
@@ -144,5 +163,5 @@ def extract_article_content(page, url):
         return "N/A", total_pages
 
     finally:
-        # Polite delay to reduce detection risk
+        # Polite delay (anti-detection)
         time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
