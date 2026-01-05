@@ -38,7 +38,7 @@ OUTPUT_DIR = "output"
 # =========================
 # GOOGLE SHEETS CONFIG
 # =========================
-SPREADSHEET_ID = os.getenv("SPREADSHEET_ID")
+SPREADSHEET_ID = "1C7dNMjAaPGCw_OnUqj1mJuA8Sk1MayNb-9TSserpM5U"
 SHEET_NAME = os.getenv("SHEET_NAME", "automated_bangka_tribunnews")
 
 GOOGLE_CREDENTIALS_FILE = os.getenv(
