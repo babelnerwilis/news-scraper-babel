@@ -23,6 +23,10 @@ def load_articles_from_sitemap(page):
 
     print("Loading sitemap via browser...")
 
+    print("🕒 START_DATE:", START_DATE)
+    print("🕒 END_DATE  :", END_DATE)
+
+
     page.goto(SITEMAP_URL, wait_until="domcontentloaded", timeout=60000)
     page.wait_for_timeout(3000)
 
