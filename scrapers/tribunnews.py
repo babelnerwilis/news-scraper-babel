@@ -61,7 +61,7 @@ def load_articles_from_sitemap(page):
             )
 
             # Debug (safe to keep in CI)
-            print("📰", pub_date.isoformat(), loc)
+            # print("📰", pub_date.isoformat(), loc)
 
             # ------------------------------------------
             # DATE FILTER
