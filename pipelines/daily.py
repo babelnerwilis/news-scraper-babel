@@ -13,7 +13,6 @@ from utilities.sheets import (
 )
 
 from config.settings import (
-    HEADERS,
     SPREADSHEET_ID,
     SHEET_NAME,
     GOOGLE_CREDENTIALS_FILE,
