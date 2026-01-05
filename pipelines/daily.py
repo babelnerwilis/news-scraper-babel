@@ -1,6 +1,5 @@
 import time
 import random
-from datetime import datetime
 
 from scrapers.tribunnews import (
     load_articles_from_sitemap,
@@ -18,9 +17,13 @@ from config.settings import (
     SPREADSHEET_ID,
     SHEET_NAME,
     GOOGLE_CREDENTIALS_FILE,
+    MIN_DELAY,
+    MAX_DELAY,
 )
 
-
+# =========================
+# COLUMN ORDER (SHEET)
+# =========================
 FIELDNAMES = [
     "day",
     "publication_datetime",
@@ -34,28 +37,41 @@ FIELDNAMES = [
 
 
 def run_daily():
-    # articles = load_articles_from_sitemap()
-    articles = load_articles_from_sitemap(page)
+    print("🚀 Starting daily scraper")
 
-
-    if not articles:
-        print("No articles found for today.")
-        return
-    
-    # LIMIT FOR TESTING
-    articles = articles[:3]
-    print("Limit testing 3 articles")
-
-    worksheet = get_worksheet(
-        spreadsheet_id=SPREADSHEET_ID,
-        worksheet_name=SHEET_NAME,
-        credentials_file=GOOGLE_CREDENTIALS_FILE,
-    )
-
+    # =========================
+    # 1. Launch browser FIRST
+    # =========================
     p, browser, page = launch_browser(HEADERS["User-Agent"])
-    results = []
 
     try:
+        # =========================
+        # 2. Load sitemap via browser
+        # =========================
+        articles = load_articles_from_sitemap(page)
+
+        if not articles:
+            print("⚠️ No articles found for date range.")
+            return
+
+        # 🔧 LIMIT FOR TESTING
+        articles = articles[:3]
+        print("🧪 Test mode: limit to 3 articles")
+
+        # =========================
+        # 3. Prepare Google Sheet
+        # =========================
+        worksheet = get_worksheet(
+            spreadsheet_id=SPREADSHEET_ID,
+            worksheet_name=SHEET_NAME,
+            credentials_file=GOOGLE_CREDENTIALS_FILE,
+        )
+
+        results = []
+
+        # =========================
+        # 4. Scrape articles
+        # =========================
         for i, art in enumerate(articles, 1):
             print(f"[{i}/{len(articles)}] {art['url']}")
 
@@ -64,7 +80,8 @@ def run_daily():
                     page, art["url"]
                 )
             except Exception as e:
-                content, total_pages = f"ERROR: {e}", 1
+                content = f"ERROR: {e}"
+                total_pages = 1
 
             results.append({
                 **art,
@@ -72,19 +89,23 @@ def run_daily():
                 "content": content,
             })
 
-            time.sleep(random.uniform(5, 7))
+            time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
+
+        # =========================
+        # 5. Save to Google Sheets
+        # =========================
+        append_rows(
+            worksheet=worksheet,
+            rows=results,
+            header=FIELDNAMES,
+        )
+
+        print(f"✅ Updated {len(results)} rows in Google Sheets")
 
     finally:
         browser.close()
         p.stop()
-
-    append_rows(
-        worksheet=worksheet,
-        rows=results,
-        header=FIELDNAMES,
-    )
-
-    print(f"\nUpdated {len(results)} rows to Google Sheets")
+        print("🧹 Browser closed")
 
 
 if __name__ == "__main__":
