@@ -22,7 +22,7 @@ def load_articles_from_sitemap(page):
     """
 
     print("Loading sitemap via browser...")
-
+    # PRINT for Debug
     print("🕒 START_DATE:", START_DATE)
     print("🕒 END_DATE  :", END_DATE)
 
@@ -47,6 +47,11 @@ def load_articles_from_sitemap(page):
             pub_date = datetime.fromisoformat(
                 pub_tag.text.strip()
             ).astimezone(WIB)
+
+            # PRINT for Debug
+            raw_date = url.find("news:publication_date").text.strip()
+            print("SITEMAP DATE RAW:", raw_date)
+
 
             # Filter by date window
             if not (START_DATE <= pub_date <= END_DATE):
