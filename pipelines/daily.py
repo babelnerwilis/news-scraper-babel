@@ -21,7 +21,7 @@ from config.settings import (
 )
 
 # =========================
-# COLUMN ORDER (SHEET)
+# COLUMN ORDER (GOOGLE SHEET)
 # =========================
 FIELDNAMES = [
     "day",
@@ -39,9 +39,9 @@ def run_daily():
     print("🚀 Starting daily scraper")
 
     # =========================
-    # 1. Launch browser FIRST
+    # 1. Launch Playwright browser
     # =========================
-    p, browser, page = launch_browser(HEADERS["User-Agent"])
+    p, browser, page = launch_browser()
 
     try:
         # =========================
@@ -53,7 +53,7 @@ def run_daily():
             print("⚠️ No articles found for date range.")
             return
 
-        # 🔧 LIMIT FOR TESTING
+        # 🔧 TEMP: limit for testing
         articles = articles[:3]
         print("🧪 Test mode: limit to 3 articles")
 
@@ -69,16 +69,18 @@ def run_daily():
         results = []
 
         # =========================
-        # 4. Scrape articles
+        # 4. Scrape article contents
         # =========================
         for i, art in enumerate(articles, 1):
             print(f"[{i}/{len(articles)}] {art['url']}")
 
             try:
                 content, total_pages = extract_article_content(
-                    page, art["url"]
+                    page,
+                    art["url"]
                 )
             except Exception as e:
+                print("⚠️ Article error:", e)
                 content = f"ERROR: {e}"
                 total_pages = 1
 
@@ -88,10 +90,11 @@ def run_daily():
                 "content": content,
             })
 
+            # Polite delay
             time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
 
         # =========================
-        # 5. Save to Google Sheets
+        # 5. Save results
         # =========================
         append_rows(
             worksheet=worksheet,
