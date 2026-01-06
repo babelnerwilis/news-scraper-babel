@@ -35,6 +35,24 @@ def get_worksheet(
 
     return worksheet
 
+def get_existing_urls(worksheet, url_col_name="url"):
+    values = worksheet.get_all_values()
+    if not values:
+        return set()
+
+    header = values[0]
+    try:
+        url_idx = header.index(url_col_name)
+    except ValueError:
+        raise ValueError(f"Column '{url_col_name}' not found in sheet")
+
+    return {
+        row[url_idx]
+        for row in values[1:]
+        if len(row) > url_idx and row[url_idx]
+    }
+
+
 def append_rows(worksheet, rows: list, header: list, dedup_key: str = "url"):
     """
     rows: list[dict]
@@ -45,16 +63,22 @@ def append_rows(worksheet, rows: list, header: list, dedup_key: str = "url"):
     existing_values = worksheet.get_all_values()
 
     # --- Header handling ---
-    if not existing_values:
+    if (
+        not existing_values or
+        not any(cell.strip() for cell in existing_values[0])
+    ):
+        # Sheet is truly empty or has blank first row
+        worksheet.clear()
         worksheet.append_row(header)
         existing_urls = set()
     else:
-        first_row = existing_values[0]
+        first_row = [c.strip() for c in existing_values[0]]
         if first_row != header:
             raise ValueError(
                 "Header mismatch detected in Google Sheet. "
                 "Refusing to append rows."
             )
+
 
         # --- Read existing URLs (column index) ---
         try:

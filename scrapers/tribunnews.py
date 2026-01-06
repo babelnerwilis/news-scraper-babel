@@ -5,7 +5,7 @@ import re
 from bs4 import BeautifulSoup
 from datetime import datetime
 from config.settings import (
-    INDEX_BASE_URL,
+    # INDEX_BASE_URL,
     START_DATE,
     END_DATE,
     WIB,
@@ -47,33 +47,36 @@ def parse_wib_datetime(text: str) -> datetime:
 # =========================
 # LOAD INDEX
 # =========================
-def load_articles_from_index():
+# def load_articles_from_index():
+def load_articles_from_index(index_base_url, source_key, existing_urls=None):
     print("🕒 START_DATE:", START_DATE.isoformat())
     print("🕒 END_DATE  :", END_DATE.isoformat())
 
     articles = []
-    seen_urls = set()
+    seen_urls = set(existing_urls or [])
+    print("Seen urls:\n", seen_urls)
 
     for page_num in range(1, MAX_PAGES + 1):
-        url = INDEX_BASE_URL.format(page=page_num)
-        print(f"[DEBUG] Fetching index URL: {url}")
+        # url = INDEX_BASE_URL.format(page=page_num)
+        url = index_base_url.format(page=page_num)
 
-        print(f"Index page {page_num}")
+        print(f"\n[Index page {page_num}] {url}")
 
         r = requests.get(url, headers=HEADERS, timeout=30)
         print("[DEBUG] Status code:", r.status_code)
-        print("[DEBUG] Content length:", len(r.text))
-        print("[DEBUG] HTML preview:")
-        print(r.text[:500])
-
 
         if r.status_code != 200:
+            print("[STOP] Non-200 response")
             break
 
         soup = BeautifulSoup(r.text, "lxml")
         items = soup.select("li.ptb15")
+
         if not items:
+            print("[STOP] No items found on page")
             break
+
+        page_dates = []
 
         for li in items:
             try:
@@ -82,7 +85,10 @@ def load_articles_from_index():
                     continue
 
                 pub_date = parse_wib_datetime(time_tag.text.strip())
-                if not (START_DATE <= pub_date <= END_DATE):
+                page_dates.append(pub_date)
+
+                # Skip if outside date range
+                if pub_date < START_DATE or pub_date > END_DATE:
                     continue
 
                 title_tag = li.select_one("h3 a")
@@ -90,14 +96,17 @@ def load_articles_from_index():
                     continue
 
                 article_url = title_tag["href"]
+
                 if article_url in seen_urls:
                     continue
+
                 seen_urls.add(article_url)
 
                 category_tag = li.select_one("h4 a")
                 category = category_tag.text.strip() if category_tag else ""
 
                 articles.append({
+                    "source": source_key,
                     "day": pub_date.strftime("%A"),
                     "publication_datetime": pub_date.strftime("%d/%m/%Y %H:%M"),
                     "category": category,
@@ -108,10 +117,22 @@ def load_articles_from_index():
             except Exception as e:
                 print("⚠️ Index error:", e)
 
+        # 🔴 STOP CONDITION (page-level)
+        if page_dates and max(page_dates) < START_DATE:
+            print("[STOP] All articles on this page are older than START_DATE")
+            break
+
+        print(
+            f"[DEBUG] Page summary → "
+            f"items={len(items)}, "
+            f"in_range={len([d for d in page_dates if START_DATE <= d <= END_DATE])}"
+        )
+
         time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
 
     articles.sort(key=lambda x: x["publication_datetime"])
     return articles
+
 
 # =========================
 # ARTICLE CONTENT + TAGS
