@@ -56,9 +56,17 @@ def load_articles_from_index():
 
     for page_num in range(1, MAX_PAGES + 1):
         url = INDEX_BASE_URL.format(page=page_num)
+        print(f"[DEBUG] Fetching index URL: {url}")
+
         print(f"Index page {page_num}")
 
         r = requests.get(url, headers=HEADERS, timeout=30)
+        print("[DEBUG] Status code:", r.status_code)
+        print("[DEBUG] Content length:", len(r.text))
+        print("[DEBUG] HTML preview:")
+        print(r.text[:500])
+
+
         if r.status_code != 200:
             break
 

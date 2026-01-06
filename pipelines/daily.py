@@ -17,6 +17,18 @@ from config.settings import (
     FIELDNAMES,
 )
 
+import os
+import sys
+import platform
+
+print("=== DEBUG ENV ===")
+print("CWD:", os.getcwd())
+print("Python:", sys.version)
+print("Platform:", platform.platform())
+print("TZ:", os.environ.get("TZ"))
+print("=================")
+
+
 def run_daily():
     articles = load_articles_from_index()
     if not articles:
