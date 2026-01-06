@@ -7,3 +7,4 @@ lxml
 requests
 gspread
 google-auth
+python-dotenv
