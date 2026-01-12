@@ -54,7 +54,7 @@ def load_articles_from_index(index_base_url, source_key, existing_urls=None):
 
     articles = []
     seen_urls = set(existing_urls or [])
-    print("Seen urls:\n", seen_urls)
+    print(f"Seen URLs:{len(seen_urls)}")
 
     for page_num in range(1, MAX_PAGES + 1):
         # url = INDEX_BASE_URL.format(page=page_num)
@@ -108,7 +108,7 @@ def load_articles_from_index(index_base_url, source_key, existing_urls=None):
                 articles.append({
                     "source": source_key,
                     "day": pub_date.strftime("%A"),
-                    "publication_datetime": pub_date.strftime("%d/%m/%Y %H:%M"),
+                    "publication_datetime": pub_date.strftime("%Y-%m-%d %H:%M"),
                     "category": category,
                     "title": title_tag.text.strip(),
                     "url": article_url,

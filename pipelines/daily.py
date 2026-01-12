@@ -63,23 +63,23 @@ def run_daily():
                 continue
 
             
-            # =========================
-            # SAVE COLLECTED URLS
-            # =========================
-            url_worksheet = get_worksheet(
-                SPREADSHEET_ID,
-                URL_SHEET_NAME,
-                GOOGLE_CREDENTIALS_FILE,
-            )
+            # # =========================
+            # # SAVE COLLECTED URLS
+            # # =========================
+            # url_worksheet = get_worksheet(
+            #     SPREADSHEET_ID,
+            #     URL_SHEET_NAME,
+            #     GOOGLE_CREDENTIALS_FILE,
+            # )
 
-            append_rows(
-                worksheet=url_worksheet,
-                rows=articles,          # already contains url + metadata
-                header=URL_FIELDNAMES,
-                dedup_key="url",
-            )
+            # append_rows(
+            #     worksheet=url_worksheet,
+            #     rows=articles,          # already contains url + metadata
+            #     header=URL_FIELDNAMES,
+            #     dedup_key="url",
+            # )
 
-            print(f"🔗 Saved {len(articles)} URLs to {URL_SHEET_NAME}")
+            # print(f"🔗 Saved {len(articles)} URLs to {URL_SHEET_NAME}")
 
             results = []
 

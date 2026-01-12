@@ -11,15 +11,15 @@ NOW_WIB = datetime.now(WIB)
 # DATE RANGE
 # =========================
 MAX_PAGES = 99
-START_DATE = datetime(2025, 10, 1, tzinfo=WIB)
-END_DATE   = datetime(2025, 12, 31, 23, 59, 59, tzinfo=WIB)
-# START_DATE = (NOW_WIB - timedelta(days=1)).replace(
-#     hour=0, minute=0, second=0, microsecond=0
-# )
+# START_DATE = datetime(2025, 10, 1, tzinfo=WIB)
+# END_DATE   = datetime(2025, 12, 31, 23, 59, 59, tzinfo=WIB)
 
-# END_DATE = NOW_WIB.replace(
-#     hour=23, minute=59, second=59, microsecond=0
-# )
+START_DATE = (NOW_WIB - timedelta(days=3)).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
+END_DATE = NOW_WIB.replace(
+    hour=23, minute=59, second=59, microsecond=0
+)
 
 
 # =========================
@@ -41,21 +41,23 @@ MAX_DELAY = 7
 # =========================
 # INDEX_BASE_URL = "https://bangka.tribunnews.com/index-news/lokal?page={page}"
 TRIBUN_SOURCES = {
-    # "bangka": {
-    #     "label": "Bangka Tribunnews",
-    #     "base_url": "https://bangka.tribunnews.com/index-news/lokal?page={page}",
-    #     "sheet": "bangka_tribunnews",
-    # },
+    "bangka": {
+        "label": "Bangka Tribunnews",
+        "base_url": "https://bangka.tribunnews.com/index-news/lokal?page={page}",
+        "sheet": "bangka_tribunnews",
+    },
     "babel": {
         "label": "Babel Tribunnews",
         "base_url": "https://babel.tribunnews.com/index-news/lokal?page={page}",
-        "sheet": "babel_tribunnews_2025_Q4",
+        "sheet": "babel_tribunnews",
+        # "sheet": "babel_tribunnews_2025_Q4",
     },
     "belitung": {
         "label": "Belitung Tribunnews",
         "base_url": "https://belitung.tribunnews.com/index-news/lokal?page={page}",
-        "sheet": "belitung_tribunnews_2025_Q4",
-    },
+        "sheet": "belitung_tribunnews",
+        # "sheet": "belitung_tribunnews_2025_Q4",
+    }
 }
 
 # =========================
